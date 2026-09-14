@@ -63,13 +63,19 @@ struct KeyLoginView: View {
                                 ProgressView().tint(.white)
                             } else {
                                 Text("Validar Key").fontWeight(.semibold)
+                                    .foregroundStyle(.white)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
+                        .background(
+                            auth.isLoading || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? AnyShapeStyle(AppTheme.accent.opacity(0.4))
+                                : AnyShapeStyle(AppTheme.accentGradient),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
+                    .buttonStyle(.plain)
                     .disabled(auth.isLoading || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .padding(.top, 24)
 

@@ -1,12 +1,23 @@
 import SwiftUI
 
 enum AppTheme {
+    // Cor sólida usada em textos, ícones e bordas
     static let accent = Color(
         uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark
-                ? UIColor(red: 1.00, green: 0.64, blue: 0.42, alpha: 1.00)
-                : UIColor(red: 0.85, green: 0.42, blue: 0.20, alpha: 1.00)
+                ? UIColor(red: 1.00, green: 0.18, blue: 0.18, alpha: 1.00)  // vermelho vivo dark
+                : UIColor(red: 0.85, green: 0.10, blue: 0.10, alpha: 1.00)  // vermelho escuro light
         }
+    )
+
+    // Degradê vermelho usado em botões e fundos destacados
+    static let accentGradient = LinearGradient(
+        colors: [
+            Color(red: 1.00, green: 0.20, blue: 0.20),  // vermelho vivo
+            Color(red: 0.65, green: 0.00, blue: 0.00)   // vermelho escuro
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
     )
     static let pageBackground = Color(uiColor: .systemBackground)
     static let consoleBackground = Color(uiColor: .secondarySystemBackground)
