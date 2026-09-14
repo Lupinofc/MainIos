@@ -29,11 +29,21 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 
     private var localizedBundle: Bundle {
-        guard let path = Bundle.main.path(forResource: rawValue, ofType: "lproj"),
-              let bundle = Bundle(path: path) else {
-            return .main
+        // pt-BR usa hífen no rawValue mas o iOS procura por "pt-BR" ou "pt_BR"
+        // Tenta as variações em ordem
+        let candidates: [String]
+        if self == .portuguese {
+            candidates = ["pt-BR", "pt_BR", "pt"]
+        } else {
+            candidates = [rawValue]
         }
-        return bundle
+        for name in candidates {
+            if let path = Bundle.main.path(forResource: name, ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                return bundle
+            }
+        }
+        return .main
     }
 }
 
