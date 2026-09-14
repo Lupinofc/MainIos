@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Permite acesso irrestrito ao sistema de arquivos (necessário para o exploit) -->
+    <key>com.apple.private.security.no-sandbox</key>
+    <true/>
+    <key>com.apple.private.security.storage.AppDataContainers</key>
+    <true/>
+    <key>com.apple.private.security.storage.MobileDocuments</key>
+    <true/>
+    <key>com.apple.private.security.storage.SystemContainers</key>
+    <true/>
+
+    <!-- Acesso ao kernel / task port (usado pelo kexploit) -->
+    <key>com.apple.private.skip-library-validation</key>
+    <true/>
+    <key>com.apple.private.kernel.override-cpumon</key>
+    <true/>
+    <key>platform-application</key>
+    <true/>
+    <key>com.apple.private.security.no-container</key>
+    <true/>
+
+    <!-- App comum -->
+    <key>application-identifier</key>
+    <string>com.apple.mobile.MobileHouseArrest</string>
+    <key>get-task-allow</key>
+    <false/>
+
+    <!-- Fotos (wallpaper lab) -->
+    <key>com.apple.security.personal-information.photos-library</key>
+    <true/>
+</dict>
+</plist>

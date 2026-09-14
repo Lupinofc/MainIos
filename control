@@ -1,0 +1,9 @@
+Package: com.apple.mobile.MobileHouseArrest
+Name: 3105
+Version: 1.1.1
+Architecture: iphoneos-arm64
+Description: 3105 — iOS file patcher and workspace tool
+Maintainer: kaikedev
+Author: kaikedev
+Section: Applications
+Tag: purpose::application
