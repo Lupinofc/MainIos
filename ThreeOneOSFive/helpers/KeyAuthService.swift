@@ -3,15 +3,12 @@ import UIKit
 
 @MainActor
 final class KeyAuthService: ObservableObject {
-    // Endpoint PHP de validação de Key informado pelo usuário.
-    static let apiURL = URL(string: "https://desireteam.online/api_login.php")!
-    // Identificador do modo configurado no painel PHP.
-    static let modeID = 63
+    // Endpoint de validação
+    static let apiURL = URL(string: "https://urielxiter.shop/mod/CheckLogin.php")!
 
     @Published private(set) var isAuthenticated = false
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
-    @Published private(set) var expiresAt: String?
 
     private let keyStorage = "threeoneosfive.license.key"
     private let uidStorage = "threeoneosfive.device.uid"
@@ -42,14 +39,13 @@ final class KeyAuthService: ObservableObject {
     func logout() {
         UserDefaults.standard.removeObject(forKey: keyStorage)
         isAuthenticated = false
-        expiresAt = nil
         errorMessage = nil
     }
 
     private func validate(key: String, saveKey: Bool) async {
         let cleanedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedKey.isEmpty else {
-            errorMessage = "Digite sua Key."
+            errorMessage = "Digite seu usuário."
             return
         }
 
@@ -59,9 +55,8 @@ final class KeyAuthService: ObservableObject {
 
         var components = URLComponents(url: Self.apiURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
-            URLQueryItem(name: "key", value: cleanedKey),
-            URLQueryItem(name: "uid", value: deviceUID),
-            URLQueryItem(name: "mode_id", value: String(Self.modeID))
+            URLQueryItem(name: "user", value: cleanedKey),
+            URLQueryItem(name: "uid",  value: deviceUID)
         ]
 
         guard let url = components?.url else {
@@ -73,6 +68,7 @@ final class KeyAuthService: ObservableObject {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.timeoutInterval = 15
+
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
@@ -80,32 +76,45 @@ final class KeyAuthService: ObservableObject {
                 return
             }
 
-            let result = try JSONDecoder().decode(KeyAuthResponse.self, from: data)
-            guard result.status.lowercased() == "success" else {
-                errorMessage = result.message ?? "Key inválida ou expirada."
+            // Resposta é texto plano
+            let body = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            // Seu PHP retorna o UID validado em caso de sucesso,
+            // ou uma mensagem de erro em caso de falha.
+            // Mensagens de erro conhecidas começam com texto específico:
+            let errorPrefixes = [
+                "Em manutenção",
+                "Usuário inválido",
+                "Dispositivo não permitido",
+                "Usuário banido",
+                "Usuário pausado",
+                "Key expirada",
+                "Configuração de dispositivo inválida",
+                "ﾠ" // usuário não encontrado (espaço especial)
+            ]
+
+            let isError = errorPrefixes.contains(where: { body.lowercased().hasPrefix($0.lowercased()) })
+                || body.isEmpty
+
+            if isError {
+                // Mensagem amigável para "não encontrado"
+                if body == "ﾠ" || body.isEmpty {
+                    errorMessage = "Usuário não encontrado."
+                } else {
+                    errorMessage = body
+                }
                 return
             }
 
+            // Sucesso — body contém o UID validado
             if saveKey {
                 UserDefaults.standard.set(cleanedKey, forKey: keyStorage)
             }
-            expiresAt = result.expiresAt
             isAuthenticated = true
-        } catch is DecodingError {
-            errorMessage = "Resposta inválida da API."
+
         } catch {
             errorMessage = "Não foi possível conectar ao servidor."
         }
-    }
-}
-
-private struct KeyAuthResponse: Decodable {
-    let status: String
-    let message: String?
-    let expiresAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case status, message
-        case expiresAt = "expires_at"
     }
 }
