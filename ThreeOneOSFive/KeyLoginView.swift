@@ -16,7 +16,7 @@ struct KeyLoginView: View {
                     AppLogo(size: 72)
                         .padding(.bottom, 24)
 
-                    Text("Ativar 3105")
+                    Text("URIEL XITER")
                         .font(.largeTitle.bold())
                         .multilineTextAlignment(.center)
 
