@@ -5,6 +5,11 @@ enum ExploitSupportPolicy {
     static let verifiedIOS18Range = "18.0–18.7.1"
     static let verifiedIOS26Range = "26.0–26.6.1"
 
+    // iOS 27.0 release estável
+    static let verifiedIOS27StableBuilds: [String] = [
+        "24A435",  // iOS 27.0 GM/Release
+    ]
+
     static let verifiedIOS27Builds: [(beta: Int, publicBeta: Int?, build: String)] = [
         (1, nil, "24A5355q"),
         (2, nil, "24A5370h"),
@@ -45,6 +50,7 @@ enum ExploitSupportPolicy {
         }
 
         guard major == 27, minor == 0, patch == 0 else { return false }
+        if verifiedIOS27StableBuilds.contains(build) { return true }
         return iOS27BetaNumber(for: build) != nil
     }
 }
