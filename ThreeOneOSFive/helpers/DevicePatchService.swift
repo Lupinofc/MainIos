@@ -86,11 +86,47 @@ enum DevicePatchService {
         var roots: [String: URL] = [:]
 
         for bundleID in bundleIDs {
-            guard let path = ContainerStore.resolveAppContainerPath(bundleID: bundleID),
-                  ContainerStore.isApplicationContainerPath(path) else {
+            // Tentativa 1: MCM + metadata scan (caminho normal)
+            if let path = ContainerStore.resolveAppContainerPath(bundleID: bundleID),
+               ContainerStore.isApplicationContainerPath(path) {
+                roots[bundleID] = PatchPathValidator.canonicalFileURL(
+                    URL(fileURLWithPath: path, isDirectory: true)
+                )
+                continue
+            }
+
+            // Tentativa 2: scan direto pelo filesystem (fallback iOS 27 release)
+            if let path = ContainerStore.resolveAppContainerPathByMetadataScan(bundleID: bundleID),
+               ContainerStore.isApplicationContainerPath(path) {
+                log("patch: filesystem fallback resolved \(bundleID)")
+                roots[bundleID] = PatchPathValidator.canonicalFileURL(
+                    URL(fileURLWithPath: path, isDirectory: true)
+                )
+                continue
+            }
+
+            // Tentativa 3: enumerar todos os containers e comparar metadata
+            let allDirs = ContainerStore.enumerateDirectoriesWithTraversalGrant(
+                path: ContainerStore.appDataRoot
+            )
+            var found = false
+            for dir in allDirs {
+                guard UUID(uuidString: (dir as NSString).lastPathComponent) != nil else { continue }
+                if let metadata = ContainerStore.readContainerMetadata(containerPath: dir),
+                   metadata.bundleID == bundleID,
+                   ContainerStore.isApplicationContainerPath(dir) {
+                    log("patch: full-scan fallback resolved \(bundleID) -> \(dir)")
+                    roots[bundleID] = PatchPathValidator.canonicalFileURL(
+                        URL(fileURLWithPath: dir, isDirectory: true)
+                    )
+                    found = true
+                    break
+                }
+            }
+
+            if !found {
                 throw PatchPackageError.targetAppUnavailable(bundleID)
             }
-            roots[bundleID] = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: path, isDirectory: true))
         }
         return try operation(roots)
     }
