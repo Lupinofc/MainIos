@@ -95,27 +95,21 @@ enum DevicePatchService {
                 continue
             }
 
-            // Tentativa 2: scan direto pelo filesystem (fallback iOS 27 release)
-            if let path = ContainerStore.resolveAppContainerPathByMetadataScan(bundleID: bundleID),
-               ContainerStore.isApplicationContainerPath(path) {
-                log("patch: filesystem fallback resolved \(bundleID)")
-                roots[bundleID] = PatchPathValidator.canonicalFileURL(
-                    URL(fileURLWithPath: path, isDirectory: true)
-                )
-                continue
-            }
-
-            // Tentativa 3: enumerar todos os containers e comparar metadata
+            // Tentativa 2: scan direto pelo filesystem sem exigir sandbox escape
+            // Util no iOS 27 onde o MCM pode recusar mas leitura direta funciona
             let allDirs = ContainerStore.enumerateDirectoriesWithTraversalGrant(
                 path: ContainerStore.appDataRoot
             )
+
             var found = false
             for dir in allDirs {
                 guard UUID(uuidString: (dir as NSString).lastPathComponent) != nil else { continue }
+
+                // Tenta ler metadata diretamente
                 if let metadata = ContainerStore.readContainerMetadata(containerPath: dir),
                    metadata.bundleID == bundleID,
                    ContainerStore.isApplicationContainerPath(dir) {
-                    log("patch: full-scan fallback resolved \(bundleID) -> \(dir)")
+                    log("patch: filesystem scan resolved \(bundleID) -> \(dir)")
                     roots[bundleID] = PatchPathValidator.canonicalFileURL(
                         URL(fileURLWithPath: dir, isDirectory: true)
                     )
@@ -125,6 +119,25 @@ enum DevicePatchService {
             }
 
             if !found {
+                // Tentativa 3: bad_query com create=true para forçar acesso
+                var bundleIDC = bundleID.utf8CString.map { Int8($0) }
+                let handle = bad_query(&bundleIDC, true, nil, false)
+                if handle >= 0 {
+                    bad_query_release(handle)
+                    // Tenta novamente após o grant
+                    if let path = ContainerStore.resolveAppContainerPath(bundleID: bundleID),
+                       ContainerStore.isApplicationContainerPath(path) {
+                        log("patch: bad_query grant resolved \(bundleID)")
+                        roots[bundleID] = PatchPathValidator.canonicalFileURL(
+                            URL(fileURLWithPath: path, isDirectory: true)
+                        )
+                        found = true
+                    }
+                }
+            }
+
+            if !found {
+                log("patch: FAILED to resolve container for \(bundleID)")
                 throw PatchPackageError.targetAppUnavailable(bundleID)
             }
         }
