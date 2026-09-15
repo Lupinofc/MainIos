@@ -290,6 +290,8 @@ struct PatchRuleEditorView: View {
     @State private var showFileImporter = false
     @State private var isImporting = false
     @State private var validationMessageKey: String?
+    @State private var exportURL: URL?
+    @State private var showExportSheet = false
 
     init(rule: PatchRule?, onSave: @escaping (PatchRule) -> Void) {
         originalRule = rule
@@ -361,6 +363,13 @@ struct PatchRuleEditorView: View {
                                 countStyle: .file
                             )
                         )
+
+                        Button {
+                            exportFile()
+                        } label: {
+                            Label("Exportar arquivo", systemImage: "square.and.arrow.up")
+                                .foregroundStyle(AppTheme.accent)
+                        }
                     }
                 }
 
@@ -394,6 +403,12 @@ struct PatchRuleEditorView: View {
                     }
                 )
                 .ignoresSafeArea()
+            }
+            .sheet(isPresented: $showExportSheet) {
+                if let url = exportURL {
+                    ShareSheet(activityItems: [url])
+                        .ignoresSafeArea()
+                }
             }
         }
     }
@@ -434,6 +449,19 @@ struct PatchRuleEditorView: View {
         }
     }
 
+    private func exportFile() {
+        guard !replacementFilename.isEmpty, !replacementData.isEmpty else { return }
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(replacementFilename)
+        do {
+            try replacementData.write(to: tempURL, options: .atomic)
+            exportURL = tempURL
+            showExportSheet = true
+        } catch {
+            // falha silenciosa — arquivo temporário não pôde ser escrito
+        }
+    }
+
     private func save() {
         do {
             let canonicalBundle = try PatchPathValidator.canonicalBundleIdentifier(bundleID)
@@ -453,4 +481,14 @@ struct PatchRuleEditorView: View {
             validationMessageKey = "patch.error.invalid_project"
         }
     }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
