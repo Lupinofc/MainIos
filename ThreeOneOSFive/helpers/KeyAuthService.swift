@@ -4,7 +4,7 @@ import UIKit
 @MainActor
 final class KeyAuthService: ObservableObject {
     // Endpoint de validação
-    static let apiURL = URL(string: "https://urielxiter.shop/mod/CheckLogin.php")!
+    static let apiURL = URL(string: "https://neocheats.shop/mod/CheckLogin.php")!
 
     @Published private(set) var isAuthenticated = false
     @Published private(set) var isLoading = false
