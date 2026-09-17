@@ -122,12 +122,16 @@ class AppState: ObservableObject {
 
     func detectSupport() {
         let v = AppInfo.versionTuple
+        log("app: detectSupport iOS \(v.major).\(v.minor).\(v.patch) build \(AppInfo.osBuild)")
+        
         let supported = ExploitSupportPolicy.isSupported(
             major: v.major,
             minor: v.minor,
             patch: v.patch,
             build: AppInfo.osBuild
         )
+        log("app: ExploitSupportPolicy.isSupported = \(supported)")
+        
 #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--simulate-access") {
             exploitStatus = .success(method: "Simulator preview")
@@ -137,6 +141,7 @@ class AppState: ObservableObject {
         unsupportedMessage = supported ? nil : "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))"
         if let unsupportedMessage {
             exploitStatus = .unsupported(unsupportedMessage)
+            log("app: UNSUPPORTED: \(unsupportedMessage)")
             return
         }
 
@@ -146,6 +151,7 @@ class AppState: ObservableObject {
             patch: v.patch,
             build: AppInfo.osBuild
         )
+        log("app: KernelExploit.isApplicable = \(applicable)")
         guard applicable else { return }
 
         refreshKernelExploitStatus()
@@ -153,10 +159,14 @@ class AppState: ObservableObject {
     }
 
     private func maybeAutoRunKernelExploit() {
+        log("app: maybeAutoRunKernelExploit check: running=\(kernelExploitRunning) status=\(exploitStatus) attempted=\(autoRunAttempted)")
         guard !kernelExploitRunning,
               !exploitStatus.isSuccess,
               !exploitStatus.isFailed,
-              !autoRunAttempted else { return }
+              !autoRunAttempted else { 
+            log("app: skipping auto-run: one of guards failed")
+            return 
+        }
         autoRunAttempted = true
         log("app: starting kernel exploit automatically")
         runKernelExploitIfNeeded()
@@ -165,10 +175,15 @@ class AppState: ObservableObject {
     private func refreshKernelExploitStatus() {
         guard !kernelExploitRunning else { return }
 
+        log("app: refreshKernelExploitStatus: requiresSandboxEscape=\(KernelExploit.requiresSandboxEscape)")
+        
         // iOS < 26: kernel R/W success persists (no sandbox probe)
         // iOS >= 26: verify full sandbox escape is still active
         if KernelExploit.requiresSandboxEscape {
-            if KernelExploit.hasSandboxAccess() {
+            let hasAccess = KernelExploit.hasSandboxAccess()
+            log("app: hasSandboxAccess check returned: \(hasAccess)")
+            
+            if hasAccess {
                 if !exploitStatus.isSuccess {
                     exploitStatus = .success(method: "kexploit")
                     log("app: existing sandbox access is still active; skipping kernel exploit")
