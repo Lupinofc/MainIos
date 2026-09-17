@@ -19,6 +19,13 @@ struct ThreeOneOSFiveApp: App {
     init() {
         setupLogCapture()
         log("app: 3105 launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
+        
+        let v = AppInfo.versionTuple
+        log("app: INIT check - iOS \(v.major).\(v.minor).\(v.patch)")
+        log("app: INIT check - build \(AppInfo.osBuild)")
+        log("app: INIT check - ExploitSupportPolicy.isSupported = \(ExploitSupportPolicy.isSupported(major: v.major, minor: v.minor, patch: v.patch, build: AppInfo.osBuild))")
+        log("app: INIT check - KernelExploit.isApplicable = \(KernelExploit.isApplicable(major: v.major, minor: v.minor, patch: v.patch, build: AppInfo.osBuild))")
+        log("app: INIT check - KernelExploit.requiresSandboxEscape = \(KernelExploit.requiresSandboxEscape)")
     }
 
     private var language: AppLanguage {
